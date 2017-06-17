@@ -199,6 +199,8 @@ let wait_for_file t fn ~targeting =
       die "no rule found for %s" (Utils.describe_target fn)
     else if Path.exists fn then
       return ()
+    else if Sys.win32 && Path.exists (Path.extend_basename fn ~suffix:".exe") then
+      return ()
     else
       die "file unavailable: %s" (Path.to_string fn)
   | Some (File_spec.T file) ->

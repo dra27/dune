@@ -441,13 +441,17 @@ let compile_rule t ~all_targets_by_dir ?(copy_source=false) pre_rule =
     let all_deps_as_list = Pset.elements all_deps in
     let targets_as_list  = Pset.elements targets  in
     let hash =
-      let trace =
+      let (digests, targets, _, _) as trace =
         (List.map all_deps_as_list ~f:(fun fn ->
            (fn, Utils.Cached_digest.file fn)),
          targets_as_list,
          Option.map context ~f:(fun c -> c.name),
          action)
       in
+      let digests = List.map ~f:(fun (path, digest) -> Printf.sprintf "  %s (%s)" (Path.to_string path) (Digest.to_hex digest)) digests |> String.concat ~sep:"\n" in
+      let elts = List.map ~f:(fun elt -> Printf.sprintf "  %s" (Path.to_string elt)) targets |> String.concat ~sep:"\n" in
+      if List.exists ~f:(fun elt -> Path.basename elt = "vidimetro" || Path.basename elt = "vidimetro.exe" (*|> Filename.remove_extension = "vidimetro"*)) targets then
+      Printf.eprintf "Computed trace:\nDigests:\n%s\nElts:\n%s\n%!" digests elts;
       Digest.string (Marshal.to_string trace [])
     in
     let sandbox_dir =

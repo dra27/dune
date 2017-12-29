@@ -1,11 +1,14 @@
 open! Import
 
+module File_set : Set.S with type elt = string
+module File_map : Map.S with type key = string
+
 module Dir : sig
   type t
 
   val path     : t -> Path.t
-  val files    : t -> String_set.t
-  val sub_dirs : t -> t String_map.t
+  val files    : t -> File_set.t
+  val sub_dirs : t -> t File_map.t
 
   (** Whether this directory is ignored by a [jbuild-ignore] file in
       one of its ancestor directories. *)

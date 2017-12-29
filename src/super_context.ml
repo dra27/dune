@@ -235,12 +235,14 @@ let add_rules t ?sandbox builds =
 let sources_and_targets_known_so_far t ~src_path =
   let sources =
     match File_tree.find_dir t.file_tree src_path with
-    | None -> String_set.empty
+    | None -> File_tree.File_set.empty
     | Some dir -> File_tree.Dir.files dir
   in
   match Path.Map.find src_path t.known_targets_by_src_dir_so_far with
   | None -> sources
-  | Some set -> String_set.union sources set
+  | Some set ->
+      let set = File_tree.File_set.of_list (String_set.elements set) in
+      File_tree.File_set.union sources set
 
 let unique_library_name t lib =
   Lib_db.unique_library_name t.libs lib

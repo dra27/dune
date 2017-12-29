@@ -170,7 +170,7 @@ let load ?extra_ignored_subtrees () =
     File_tree.fold ftree ~traverse_ignored_dirs:false ~init:[] ~f:(fun dir pkgs ->
       let path = File_tree.Dir.path dir in
       let files = File_tree.Dir.files dir in
-      String_set.fold files ~init:pkgs ~f:(fun fn acc ->
+      File_tree.File_set.fold files ~init:pkgs ~f:(fun fn acc ->
         match Filename.split_extension fn with
         | (pkg, ".opam") when pkg <> "" ->
           let version_from_opam_file =
@@ -219,13 +219,13 @@ let load ?extra_ignored_subtrees () =
       let sub_dirs = File_tree.Dir.sub_dirs dir in
       let scope = Path.Map.find_default path scopes ~default:scope in
       let jbuilds =
-        if String_set.mem "jbuild" files then
+        if File_tree.File_set.find_opt "jbuild" files = Some "jbuild" then
           let jbuild = load ~dir:path ~scope in
           jbuild :: jbuilds
         else
           jbuilds
       in
-      String_map.fold sub_dirs ~init:jbuilds
+      File_tree.File_map.fold sub_dirs ~init:jbuilds
         ~f:(fun ~key:_ ~data:dir jbuilds ->
           walk dir jbuilds scope)
     end

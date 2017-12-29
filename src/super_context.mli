@@ -56,7 +56,7 @@ val add_rules
   -> unit
 val rules : t -> Build_interpret.Rule.t list
 
-val sources_and_targets_known_so_far : t -> src_path:Path.t -> String_set.t
+val sources_and_targets_known_so_far : t -> src_path:Path.t -> File_tree.File_set.t
 
 (** [prog_spec t ?hint name] resolve a program. [name] is looked up in the
     workspace, if it is not found in the tree is is looked up in the PATH. If it

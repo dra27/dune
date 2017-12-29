@@ -612,7 +612,7 @@ let create ~contexts ~file_tree ~rules =
         let path = File_tree.Dir.path dir in
         Pset.union acc
           (File_tree.Dir.files dir
-           |> String_set.elements
+           |> File_tree.File_set.elements
            |> List.map ~f:(Path.relative path)
            |> Pset.of_list))
   in

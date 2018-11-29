@@ -125,7 +125,7 @@ module Fancy = struct
     in
     match stdout_to, stderr_to with
     | (File fn1 | Opened_file { filename = fn1; _ }),
-      (File fn2 | Opened_file { filename = fn2; _ }) when fn1 = fn2 ->
+      (File fn2 | Opened_file { filename = fn2; _ }) when Path.equal fn1 fn2 ->
       sprintf "%s &> %s" s (Path.to_string fn1)
     | _ ->
       let s =
@@ -314,10 +314,11 @@ let run ?dir ?stdout_to ?stderr_to ~env ?(purpose=Internal_job) fail_mode
     (run_internal ?dir ?stdout_to ?stderr_to ~env ~purpose fail_mode prog args)
     ~f:ignore
 
-let run_capture_gen ?dir ~env ?(purpose=Internal_job) fail_mode prog args ~f =
+let run_capture_gen ?dir ?stderr_to ~env ?(purpose=Internal_job) fail_mode
+      prog args ~f =
   let fn = Temp.create "dune" ".output" in
   map_result fail_mode
-    (run_internal ?dir ~stdout_to:(File fn)
+    (run_internal ?dir ~stdout_to:(File fn) ?stderr_to
        ~env ~purpose fail_mode prog args)
     ~f:(fun () ->
       let x = f fn in
@@ -327,8 +328,9 @@ let run_capture_gen ?dir ~env ?(purpose=Internal_job) fail_mode prog args ~f =
 let run_capture = run_capture_gen ~f:Io.read_file
 let run_capture_lines = run_capture_gen ~f:Io.lines_of_file
 
-let run_capture_line ?dir ~env ?(purpose=Internal_job) fail_mode prog args =
-  run_capture_gen ?dir ~env ~purpose fail_mode prog args ~f:(fun fn ->
+let run_capture_line ?dir ?stderr_to ~env ?(purpose=Internal_job) fail_mode
+      prog args =
+  run_capture_gen ?dir ?stderr_to ~env ~purpose fail_mode prog args ~f:(fun fn ->
     match Io.lines_of_file fn with
     | [x] -> x
     | l ->

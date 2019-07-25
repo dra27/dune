@@ -1,5 +1,7 @@
 [@@@ocaml.warning "-40"]
 
+let use_secondary = Array.length Sys.argv > 1 && Sys.argv.(1) = "secondary"
+
 (* This module is here to build a version of Dune that is capable of
  * building itself. It accomplishes this by concatenating all its source files
  * into a single .ml file and simply compiling it. The source code of the
@@ -141,9 +143,11 @@ let path =
 
 let exe = if Sys.win32 then ".exe" else ""
 
+let fatal fmt =
+  ksprintf (fun s -> prerr_endline s; exit 2) fmt
+
 let prog_not_found prog =
-  eprintf "Program %s not found in PATH" prog;
-  exit 2
+  fatal "Program %s not found in PATH" prog
 
 let best_prog dir prog =
   let fn = dir ^/ prog ^ ".opt" ^ exe in
@@ -171,13 +175,6 @@ let get_prog dir prog =
   | None -> prog_not_found prog
   | Some fn -> fn
 
-let bin_dir, ocamlc =
-  match find_prog "ocamlc" with
-  | None -> prog_not_found "ocamlc"
-  | Some x -> x
-
-let ocamlopt = best_prog bin_dir "ocamlopt"
-
 let to_delete = ref []
 let add_to_delete fn =
   to_delete := fn :: !to_delete
@@ -185,6 +182,26 @@ let () =
   at_exit (fun () ->
     List.iter !to_delete ~f:(fun fn ->
       try Sys.remove fn with _ -> ()))
+
+let bin_dir, ocamlc =
+  if use_secondary then
+    let () = add_to_delete "boot-secondary" in
+    let code = Sys.command "ocamlfind -toolchain secondary query ocaml > boot-secondary" in
+    if code = 0 then
+      match read_lines "boot-secondary" with
+      | [] | _::_::_ -> fatal "Unexpected output locating secondary compiler"
+      | [bin_dir] ->
+        match best_prog bin_dir "ocamlc" with
+        | None -> fatal "Failed to locate secondary ocamlc"
+        | Some x -> (bin_dir, x)
+    else
+      fatal "Unexpected exit code %d from ocamlfind" code
+  else
+    match find_prog "ocamlc" with
+    | None -> prog_not_found "ocamlc"
+    | Some x -> x
+
+let ocamlopt = best_prog bin_dir "ocamlopt"
 
 let ocamllex = get_prog bin_dir "ocamllex"
 let ocamldep = get_prog bin_dir "ocamldep"
@@ -414,7 +431,16 @@ let compile ~dirs ~generated_file ~exe ~main ~flags ~byte_flags ~native_flags
   let generate_file_with_all_the_sources () =
     let oc = open_out_bin generated_file in
     let in_generated_code = ref true in
-    let line = ref 0 in
+    let line =
+      if use_secondary then
+        let () =
+          fprintf oc "let () = Unix.putenv \"PATH\" (%S ^ \"%c\" ^ Unix.getenv \"PATH\")\n"
+                     bin_dir path_sep
+        in
+        ref 1
+      else
+        ref 0
+    in
     let pr fmt =
       ksprintf (fun s ->
         if not !in_generated_code then begin
@@ -565,6 +591,13 @@ let pp =
 
 (* Compile the bootstrap dune executable *)
 
+let byte_flags =
+  let libs = "unix.cma threads.cma" in
+  if use_secondary then
+    "-custom " ^ libs
+  else
+    libs
+
 let () =
   compile
     ~generated_file:"boot.ml"
@@ -572,6 +605,6 @@ let () =
     ~main:"let () = Main.bootstrap ()"
     ~dirs
     ~flags:"-I +threads"
-    ~byte_flags:"unix.cma threads.cma"
+    ~byte_flags
     ~native_flags:None
     ~pp

@@ -26,17 +26,16 @@ license: "MIT"
 homepage: "https://github.com/ocaml/dune"
 doc: "https://dune.readthedocs.io/"
 bug-reports: "https://github.com/ocaml/dune/issues"
-depends: [
-  "ocaml" {>= "4.02"}
-  "base-unix"
-  "base-threads"
-]
 conflicts: [
   "odoc" {< "1.3.0"}
   "dune-release" {< "1.3.0"}
   "jbuilder" {= "transition"}
 ]
 dev-repo: "git+https://github.com/ocaml/dune.git"
+depends: [
+  ("ocaml" {>= "4.08"} & "base-unix" & "base-threads") |
+  ("ocaml" {>= "4"} & "ocaml-secondary-compiler" {>= "4.08" & build} & "ocamlfind-secondary" {build})
+]
 build: [
   # opam 2 sets OPAM_SWITCH_PREFIX, so we don't need a hardcoded path
   ["ocaml" "configure.ml" "--libdir" lib] {opam-version < "2"}

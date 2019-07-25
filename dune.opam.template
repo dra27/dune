@@ -1,3 +1,7 @@
+depends: [
+  ("ocaml" {>= "4.08"} & "base-unix" & "base-threads") |
+  ("ocaml" {>= "4"} & "ocaml-secondary-compiler" {>= "4.08" & build} & "ocamlfind-secondary" {build})
+]
 build: [
   # opam 2 sets OPAM_SWITCH_PREFIX, so we don't need a hardcoded path
   ["ocaml" "configure.ml" "--libdir" lib] {opam-version < "2"}

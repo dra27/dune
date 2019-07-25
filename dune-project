@@ -11,10 +11,6 @@
 
 (package
  (name dune)
- (depends
-  (ocaml (>= 4.02))
-  base-unix
-  base-threads)
  (conflicts
   (odoc (< 1.3.0))
   (dune-release (< 1.3.0))

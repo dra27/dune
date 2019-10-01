@@ -1,4 +1,3 @@
 (test
  (name artifact_substitution)
- (libraries stdune dune fiber dune_re)
- (preprocess future_syntax))
+ (libraries stdune dune fiber dune_re))

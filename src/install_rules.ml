@@ -266,7 +266,9 @@ let lib_install_files sctx ~dir_contents ~dir ~sub_dir:lib_subdir
       cmi_file :: other_cm_files
     )
   in
-  let archives = Lib_archives.make ~ctx ~dir_contents ~dir lib in
+  let archives =
+    Lib_archives.make ~ctx ~dir_contents ~dir ~is_empty:(module_files = []) lib
+  in
   let execs = lib_ppxs sctx ~lib ~scope ~dir_kind in
   List.concat
     [ sources

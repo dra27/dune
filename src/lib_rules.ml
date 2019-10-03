@@ -71,7 +71,11 @@ module Gen (P : sig val sctx : Super_context.t end) = struct
                   (match mode with
                    | Byte -> []
                    | Native ->
-                     [Library.archive lib ~dir ~ext:ext_lib])
+                     if ctx.ccomp_type = "msvc" &&
+                        Cm_files.unsorted_objects_and_cms cm_files ~mode = [] then
+                       []
+                     else
+                       [Library.archive lib ~dir ~ext:ext_lib])
               ])))
 
   let gen_wrapped_compat_modules (lib : Library.t) cctx =
@@ -239,7 +243,7 @@ module Gen (P : sig val sctx : Super_context.t end) = struct
     | [] -> ()
     | o_files -> build_self_stubs lib ~dir ~expander ~o_files
 
-  let build_shared lib ~dir ~flags ~(ctx : Context.t) =
+  let build_shared lib ~dir ~flags ~is_empty ~(ctx : Context.t) =
     Option.iter ctx.ocamlopt ~f:(fun ocamlopt ->
       let ext_lib = ctx.lib_config.ext_lib in
       let src =
@@ -251,9 +255,7 @@ module Gen (P : sig val sctx : Super_context.t end) = struct
         Library.archive lib ~dir ~ext
       in
       let build =
-        Build.S.seq (Build.dyn_paths (Build.arr (fun () -> [
-            Path.build (Library.archive lib ~dir ~ext:ext_lib)
-          ])))
+        let cmd =
           (Command.run ~dir:(Path.build ctx.build_dir)
              (Ok ocamlopt)
              [ Command.Args.dyn (Ocaml_flags.get flags Native)
@@ -262,6 +264,13 @@ module Gen (P : sig val sctx : Super_context.t end) = struct
              ; A "-o"; Target dst
              ; Dep src
              ])
+         in
+           if ctx.ccomp_type = "msvc" && is_empty then
+             cmd
+           else
+             Build.S.seq (Build.dyn_paths (Build.arr (fun () -> [
+                 Path.build (Library.archive lib ~dir ~ext:ext_lib)
+               ]))) cmd
       in
       let build =
         if Library.has_stubs lib then
@@ -299,10 +308,12 @@ module Gen (P : sig val sctx : Super_context.t end) = struct
       Dep_graph.top_closed_implementations dep_graphs.impl impl_only in
 
     let modes = Mode_conf.Set.eval lib.modes ~has_native in
-    (let cm_files =
-       Cm_files.make ~obj_dir ~ext_obj ~modules ~top_sorted_modules in
-     Mode.Dict.Set.iter modes ~f:(fun mode ->
-       build_lib lib ~expander ~flags ~dir ~mode ~cm_files));
+    let cm_files =
+       Cm_files.make ~obj_dir ~ext_obj ~modules ~top_sorted_modules
+    in
+    let is_empty = Cm_files.unsorted_objects_and_cms cm_files ~mode:Native = [] in
+    Mode.Dict.Set.iter modes ~f:(fun mode ->
+      build_lib lib ~expander ~flags ~dir ~mode ~cm_files);
     (* Build *.cma.js *)
     if modes.byte then
       SC.add_rules sctx ~dir (
@@ -316,7 +327,7 @@ module Gen (P : sig val sctx : Super_context.t end) = struct
         Js_of_ocaml_rules.build_cm cctx ~js_of_ocaml ~src ~target);
     if Dynlink_supported.By_the_os.get natdynlink_supported
     && modes.native then
-      build_shared lib ~dir ~flags ~ctx
+      build_shared lib ~is_empty ~dir ~flags ~ctx
 
   let library_rules (lib : Library.t) ~dir_contents ~dir ~expander ~scope
         ~compile_info ~dir_kind =

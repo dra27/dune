@@ -140,7 +140,7 @@ module Term = struct
       | `Parse of string
       | `Std_help of Manpage.format
       | `Std_version ] )
-    Pervasives.result
+    Stdlib.result
 
   let run ~catch ei cl f =
     try (f ei cl :> 'a eval_result)
@@ -339,10 +339,10 @@ module Term = struct
     | `Ok n -> n
     | r -> exit_status_of_result ?term_err r
 
-  let exit ?term_err r = Pervasives.exit (exit_status_of_result ?term_err r)
+  let exit ?term_err r = Stdlib.exit (exit_status_of_result ?term_err r)
 
   let exit_status ?term_err r =
-    Pervasives.exit (exit_status_of_status_result ?term_err r)
+    Stdlib.exit (exit_status_of_status_result ?term_err r)
 end
 
 (*---------------------------------------------------------------------------

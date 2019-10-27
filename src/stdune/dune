@@ -5,4 +5,4 @@
  (libraries dune_caml unix)
  (foreign_stubs
   (language c)
-  (names fcntl)))
+  (names fcntl_stubs)))

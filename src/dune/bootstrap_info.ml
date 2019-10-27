@@ -24,7 +24,12 @@ let gen_rules sctx (exes : Dune_file.Executables.t) ~dir compile =
                 Format.asprintf "%a@." Pp.render_ignore_tags
                   (Pp.vbox
                      (Pp.concat ~sep:Pp.cut
-                        [ def "external_libraries"
+                        [ def "executables"
+                            (List
+                               (* @@DRA Want to be using the public_name here, not the internal name *)
+                               (List.map ~f:(fun (_, x) -> Dyn.String x) exes.names))
+                        ; Pp.nop
+                        ; def "external_libraries"
                             (List
                                (List.map externals ~f:(fun x ->
                                     Lib.name x |> Lib_name.to_dyn)))
@@ -49,7 +54,7 @@ let gen_rules sctx (exes : Dune_file.Executables.t) ~dir compile =
                                             |> Dir_contents.dirs
                                           with
                                         | _ :: _ :: _ ->
-                                          Dyn.Variant ("Unqualified", [])
-                                        | _ -> Dyn.Variant ("No", []) )
+                                          Dyn.Bool true
+                                        | _ -> Dyn.Bool false )
                                       ])))
                         ]))))))

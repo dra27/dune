@@ -627,7 +627,7 @@ let process_task ~maps ~dependencies ~built ~c_taints last_files {target = (name
     in
       let rec loop released modules stack =
         (* See what's finished *)
-        let ((_, released), stack) =
+        let ((running, released), stack) =
           let f (running, released) item =
             match item with
             | `Task (pid, releases) ->
@@ -653,6 +653,7 @@ let process_task ~maps ~dependencies ~built ~c_taints last_files {target = (name
           in
             List.fold_left_filter_map ~f ~init:(0, released) stack
         in
+        if running = parallel_count then Unix.sleepf 0.1;
         let (released, can_build, to_build) =
           if modules = [] then
             (released, [], [])
@@ -662,7 +663,9 @@ let process_task ~maps ~dependencies ~built ~c_taints last_files {target = (name
         if to_build = [] && stack = [] then
           released
         else
-          loop released to_build (stack @ List.map ~f:(fun x -> `Module [x]) can_build)
+          let (mli, ml) = List.partition ~f:(fun x -> Filename.extension x = ".mli") can_build in
+          let ml = List.map ~f:(fun x -> `Module [x]) ml in
+          loop released to_build (stack @ (if mli = [] then ml else `Module mli :: ml))
       in
       (* XXX Obviously dreadful *)
       let released = loop StringSet.empty build_modules [] in

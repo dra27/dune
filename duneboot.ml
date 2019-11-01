@@ -554,6 +554,28 @@ let remove_all_trace ~cwd name =
   let base = Filename.chop_extension file in
   List.iter ~f:rm_f [file; base ^ ".cmi"; base ^ ".cmx"]
 
+let get_releaseable_modules dependencies released modules =
+  let f (released, can_build, to_build) unit =
+    let (deps, _) = List.assoc unit dependencies in
+    (*Printf.eprintf "%s has %d deps\n%!" unit (List.length deps);*)
+    if List.for_all ~f:(fun x -> StringSet.mem x released) deps then
+      ((*StringSet.add unit*) released, unit::can_build, to_build)
+    else
+      (released, can_build, unit::to_build)
+  in
+  List.fold_left ~f ~init:(released, [], []) modules
+  (*let rec phase released to_build =
+  let (released, can_build, to_build) = List.fold_left ~f ~init:(released, [], []) to_build in
+  let (can_build, to_build) = (List.rev can_build, List.rev to_build) in
+      (*Printf.eprintf "\n\n%!";
+      Printf.eprintf "release: %s\n%!" (String.concat ~sep:" " can_build);
+      Printf.eprintf "\n\n (%d held back)\n%!" (List.length to_build);*)
+  if to_build <> [] then
+    phase (List.fold_left ~f:(fun released x -> StringSet.add x released) ~init:released can_build) to_build
+  else
+  (released, can_build, to_build)
+  in phase StringSet.empty modules*)
+
 let process_task ~maps ~dependencies ~built ~c_taints last_files {target = (name, main); external_libraries; local_libraries} =
   List.iter ~f:(remove_all_trace ~cwd:build_dir) last_files;
   let (maps, ml_files, namespaces) = assemble_task maps main in
@@ -601,7 +623,51 @@ let process_task ~maps ~dependencies ~built ~c_taints last_files {target = (name
         else
           " " ^ String.concat ~sep:" " external_libraries
     in
-      exec_or_die ~cwd:build_dir ocamlopt "-o %s%s -g -no-alias-deps -w -49%s %s" name external_libraries c_objects (String.concat ~sep:" " build_modules);
+    let parallel_count = 4
+    in
+      let rec loop released modules stack =
+        (* See what's finished *)
+        let ((_, released), stack) =
+          let f (running, released) item =
+            match item with
+            | `Task (pid, releases) ->
+                let (pid', status) = Unix.waitpid [WNOHANG] pid in
+                if pid' = 0 then
+                  ((succ running, released), Some item)
+                else
+                  if status <> (WEXITED 0) then
+                    (* XXX COMBAK Display proper error *)
+                    failwith "a command failed"
+                  else
+                    ((pred running, List.fold_left ~f:(fun released x -> StringSet.add x released) ~init:released releases), None)
+            | `Module releases ->
+                 if running < parallel_count then
+                   let pid =
+                     let pwd = Sys.getcwd () in
+                     Sys.chdir build_dir;
+                     Printf.printf "%s -I +threads -c -g -no-alias-deps -w -49 %s\n%!" ocamlopt (String.concat ~sep:" " releases);
+                     let pid = Unix.create_process ocamlopt (Array.of_list (ocamlopt :: "-I" :: "+threads" :: "-c" :: "-g" :: "-no-alias-deps" :: "-w" :: "-49" :: releases)) Unix.stdin Unix.stdout Unix.stderr in Sys.chdir pwd; pid in
+                   ((succ running, released), Some (`Task (pid, releases)))
+                 else
+                   ((running, released), Some item)
+          in
+            List.fold_left_filter_map ~f ~init:(0, released) stack
+        in
+        let (released, can_build, to_build) =
+          if modules = [] then
+            (released, [], [])
+          else
+            get_releaseable_modules dependencies released modules
+        in
+        if to_build = [] && stack = [] then
+          released
+        else
+          loop released to_build (stack @ List.map ~f:(fun x -> `Module [x]) can_build)
+      in
+      (* XXX Obviously dreadful *)
+      let released = loop StringSet.empty build_modules [] in
+      let build_modules = get_compilation_order (StringSet.fold (fun x built -> StringSet.add x built) released built) dependencies ~for_linking:true [Filename.basename main] in
+      exec_or_die ~cwd:build_dir ocamlopt "-o %s%s -g -no-alias-deps -w -49%s %s" name external_libraries c_objects (String.concat ~sep:" " (List.filter_map ~f:(fun x -> if StringSet.mem x released then if Filename.extension x = ".mli" then None else Some (get_target_file x) else Some x) build_modules));
       ml_files
 
 let get_c_taints c_taints libraries =

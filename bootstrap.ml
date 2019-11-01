@@ -40,6 +40,6 @@ let () =
       if v < (4, 08) then
         legacy_launch ()
       else
-        Sys.command "ocaml duneboot.ml"
+        Sys.command "ocaml unix.cma duneboot.ml"
     in
     exit code;;

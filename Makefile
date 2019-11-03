@@ -6,13 +6,7 @@ BIN := ./_boot/default/bin/main.exe
 
 -include Makefile.dev
 
-default: boot.exe
-	./boot.exe
-
-release: boot.exe
-	./boot.exe --release
-
-boot.exe: bootstrap.ml
+release: bootstrap.ml duneboot.ml
 	ocaml bootstrap.ml
 
 install:
@@ -50,7 +44,6 @@ all-supported-ocaml-versions:
 	$(BIN) build @install @runtest --workspace dune-workspace.dev --root .
 
 clean:
-	rm -f ./boot.exe $(wildcard ./bootstrap.cmi ./bootstrap.cmo ./bootstrap.exe)
 	$(BIN) clean || true
 	rm -rf _boot
 

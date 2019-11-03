@@ -84,9 +84,6 @@ case "$TARGET" in
     echo -en "travis_fold:start:dune.bootstrap\r"
     ocaml bootstrap.ml
     echo -en "travis_fold:end:dune.bootstrap\r"
-    ./boot.exe --subst
-    echo -en "travis_fold:start:dune.boot\r"
-    ./boot.exe
     if [ $WITH_OPAM -eq 1 ] ; then
       echo -en "travis_fold:start:opam.deps\r"
       DATE=$(date +%Y%m%d)
@@ -114,7 +111,6 @@ case "$TARGET" in
       opam_install_test_deps
       echo -en "travis_fold:end:opam.deps\r"
     fi
-    echo -en "travis_fold:end:dune.boot\r"
     if [ $WITH_OPAM -eq 1 ] ; then
       cat $RUNTEST_NO_DEPS;
       _boot/install/default/bin/dune runtest && \

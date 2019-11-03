@@ -3,8 +3,9 @@
 
 let secondary = "ocaml-secondary.exe"
 let secondary_err = "ocaml-secondary.err"
+let secondary_win = "ocaml-secondary.cmd"
 let () =
-  at_exit (fun () -> List.iter (fun fn -> try Sys.remove fn with _ -> ()) [secondary; secondary_err])
+  at_exit (fun () -> List.iter (fun fn -> try Sys.remove fn with _ -> ()) [secondary; secondary_err; secondary_win])
 
 let legacy_launch () =
   if Printf.kprintf Sys.command "ocamlfind -toolchain secondary ocamlmktop -o %s 2>%s" secondary secondary_err = 0 then
@@ -19,7 +20,13 @@ let legacy_launch () =
         empty
     in
     if loop true then
-      Printf.kprintf Sys.command "./%s duneboot.ml secondary" secondary
+      if Sys.win32 then
+        let oc = open_out secondary_win in
+        output_string oc "@echo off\nset CAML_LD_LIBRARY_PATH=\n.\\%%*\n";
+        close_out oc;
+        Printf.kprintf Sys.command ".\\%s unix.cma duneboot.ml secondary" secondary_win
+      else
+        Printf.kprintf Sys.command "CAML_LD_LIBRARY_PATH= ./%s unix.cma duneboot.ml secondary" secondary
     else begin
       prerr_endline "ocamlfind warnings considered fatal!";
       2

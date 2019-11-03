@@ -54,6 +54,17 @@ let open_out file =
   if Sys.file_exists file then failwith "%s already exists" file;
   open_out file
 
+let read_lines fn =
+  let ic = open_in fn in
+  let rec loop ic acc =
+    match try Some (input_line ic) with End_of_file -> None with
+    | Some line -> loop ic (line :: acc)
+    | None -> List.rev acc
+  in
+  let lines = loop ic [] in
+  close_in ic;
+  lines
+
 (* copy a file - fails if the file exists *)
 let copy ?write_header a b =
   if Sys.file_exists b then failwith "%s already exists" b;
@@ -140,9 +151,11 @@ let exe =
   else
     ""
 
+let fatal fmt =
+  Printf.ksprintf (fun s -> prerr_endline s; exit 2) fmt
+
 let prog_not_found prog =
-  Printf.eprintf "Program %s not found in PATH" prog;
-  exit 2
+  fatal "Program %s not found in PATH" prog
 
 let best_prog dir prog =
   let fn = dir ^/ prog ^ ".opt" ^ exe in
@@ -170,10 +183,31 @@ let get_prog dir prog =
   | None -> prog_not_found prog
   | Some fn -> fn
 
+let use_secondary =
+  Array.length Sys.argv > 1 && Sys.argv.(1) = "secondary"
+
 let bin_dir, ocamlc =
   match find_prog "ocamlc" with
   | None -> prog_not_found "ocamlc"
   | Some x -> x
+
+let bin_dir, ocamlc =
+  if use_secondary then
+    let () = at_exit (fun () -> try Sys.remove "boot-secondary" with _ -> ()) in
+    let code = Sys.command "ocamlfind -toolchain secondary query ocaml > boot-secondary" in
+    if code = 0 then
+      match read_lines "boot-secondary" with
+      | [] | _::_::_ -> fatal "Unexpected output locating secondary compiler"
+      | [bin_dir] ->
+        match best_prog bin_dir "ocamlc" with
+        | None -> fatal "Failed to locate secondary ocamlc"
+        | Some x -> (bin_dir, x)
+    else
+      fatal "Unexpected exit code %d from ocamlfind" code
+  else
+    match find_prog "ocamlc" with
+    | None -> prog_not_found "ocamlc"
+    | Some x -> x
 
 let ocamlyacc = get_prog bin_dir "ocamlyacc"
 

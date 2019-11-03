@@ -11,5 +11,5 @@ bootstrap.cmi
 bootstrap.cmo
 bootstrap.exe
 Makefile.dev
-src/setup.ml
+src/dune/setup.ml
 /_boot

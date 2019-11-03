@@ -293,12 +293,7 @@ end = struct
     dirs
     |> List.fold_left ~init:(dirs_visited, String.Map.empty)
          ~f:(fun (dirs_visited, subdirs) (fn, path, file) ->
-           let status =
-             if Bootstrap.data_only_path path then
-               Sub_dirs.Status.Or_ignored.Ignored
-             else
-               Sub_dirs.status sub_dirs ~dir:fn
-           in
+           let status = Sub_dirs.status sub_dirs ~dir:fn in
            match status with
            | Ignored -> (dirs_visited, subdirs)
            | Status status ->

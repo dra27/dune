@@ -510,13 +510,13 @@ let topsort dependencies modules =
   in
     process 0 StringSet.empty [] modules
 
-type build_task = Task of string option * (StringSet.t -> build_task)
+type 'a build_task = Task of 'a option * (StringSet.t -> 'a build_task)
 
 let get_compilation_order dependencies modules =
   mark_overhead ();
   let get_released released modules =
     let (buildable, modules) = List.partition ~f:(fun (_, (_, dep_count, _)) -> !dep_count = 0) modules in
-    let buildable = List.rev_map ~f:(fun (name, (releases, _, _)) -> List.iter ~f:decr !releases; name) buildable in
+    let buildable = List.rev_map ~f:(fun (name, (releases, _, _)) -> (name, !releases)) buildable in
     (buildable, modules)
   in
   (* XXX This marking process would be neater keeping the list separate - we don't need the deps after its built. Note that this is also measuarbly faster than scanning dependencies each time *)
@@ -547,23 +547,94 @@ let get_compilation_order dependencies modules =
     | item::buildable ->
         Task(Some item, seq modules buildable)
   in
-    let rec j1_version released seq =
+    (*let rec j1_version released seq =
       match seq released with
       | Task (Some item, next) ->
           let released = StringSet.add item released in
           item :: j1_version released next
       | Task (None, _) ->
           []
-    in
+    in*)
       (*seq modules [] StringSet.empty*)
-      let r = j1_version StringSet.empty (seq modules []) in
-      mark_timing "j1_version"; r
+      (*let r = j1_version StringSet.empty (seq modules []) in
+      mark_timing "j1_version"; r*)
+      seq modules []
+
+let scheduler name exe external_includes external_libraries c_taints build_modules =
+  let parallel_count = 8 in
+  let rec scheduler final_link c_objects released tasks build_modules =
+    let finished_pid =
+      if Sys.win32 || tasks = [] then
+        0
+      else
+        let (pid, status) = Unix.wait () in
+        if status <> WEXITED 0 then
+          (* XXX Can maybe do better... *)
+          failwith "a command failed";
+        pid
+    in
+      let rec process_tasks released n tasks = function
+      | [] ->
+          (released, tasks, n)
+      | ((pid, file, releases) as task)::rest ->
+          if pid = finished_pid then
+            let () = List.iter ~f:decr releases in
+            process_tasks (StringSet.add file released) n tasks rest
+          else
+            let (pid', status) = Unix.waitpid [WNOHANG] pid in
+            if pid' = 0 then
+              process_tasks released (succ n) (task::tasks) rest
+            else begin
+              if status <> WEXITED 0 then
+                (* XXX As above *)
+                failwith "a command failed";
+              let () = List.iter ~f:decr releases in
+              process_tasks (StringSet.add file released) n tasks rest
+            end
+      in
+        let (released, tasks, num_tasks) = process_tasks released 0 [] tasks in
+        let rec add_tasks final_link c_objects tasks build_modules n =
+          if n < parallel_count then
+            match build_modules released with
+            | Task(Some (file, releases), next) ->
+                 let c_objects = List.fold_left ~f:(fun c_objects file -> StringSet.add file c_objects) ~init:c_objects (Option.value ~default:[] (StringMap.find_opt file c_taints)) in
+                 let task =
+                   let cwd = Sys.getcwd () in
+                   Sys.chdir build_dir;
+                   Printf.printf "%s -c -g -no-alias-deps -w -49 -I +threads %s\n%!" ocamlopt file;
+                   let pid = Unix.create_process ocamlopt [| "ocamlopt"; "-c"; "-g"; "-no-alias-deps"; "-w"; "-49"; "-I"; "+threads" (* XXX *); file |] Unix.stdin Unix.stdout Unix.stderr in
+                   Sys.chdir cwd;
+                   (pid, file, releases)
+                 in
+                   let final_link =
+                     if Filename.extension file = ".ml" then
+                       (Filename.chop_extension file ^ ".cmx") :: final_link
+                     else
+                       final_link
+                   in
+                     add_tasks final_link c_objects (task::tasks) next (succ n)
+            | Task(None, next) ->
+                (final_link, c_objects, tasks, next)
+          else
+            (final_link, c_objects, tasks, build_modules)
+        in
+          let (final_link, c_objects, tasks, build_modules) = add_tasks final_link c_objects tasks build_modules num_tasks in
+          if tasks = [] then
+            exec_or_die ~cwd:build_dir ocamlopt "-o %s%s -g %s %s %s %s" name exe external_includes external_libraries (String.concat ~sep:" " (StringSet.elements c_objects)) (String.concat ~sep:" " (List.rev final_link))
+          else begin
+            (*Printf.eprintf "Iteration: %d/%d utilisation\n%!" (List.length tasks) parallel_count;*)
+            if Sys.win32 then
+              Unix.sleepf 0.1;
+            scheduler final_link c_objects released tasks build_modules
+          end
+  in
+    scheduler [] StringSet.empty StringSet.empty [] build_modules
 
 let process_task ~start ~maps ~dependencies ~c_taints {target = (name, main); external_libraries; local_libraries} =
   let build_modules =
     get_compilation_order dependencies [Filename.basename main]
   in
-  let c_objects =
+  (*let c_objects =
     let c_objects =
       let f c_objects unit =
         List.fold_left ~f:(fun c_objects file -> StringSet.add file c_objects) ~init:c_objects (Option.value ~default:[] (StringMap.find_opt unit c_taints))
@@ -574,21 +645,21 @@ let process_task ~start ~maps ~dependencies ~c_taints {target = (name, main); ex
         ""
       else
         " " ^ String.concat ~sep:" " (StringSet.elements c_objects)
-  in
-  let external_libraries =
+  in*)
+  let (external_libraries, external_includes) =
     let convert = function
-    | "threads.posix" -> "-I +threads threads.cmxa"
-    | "unix" -> "unix.cmxa"
+    | "threads.posix" -> ("threads.cmxa", Some "-I +threads")
+    | "unix" -> ("unix.cmxa", None)
     | s -> failwith "unhandled external library %s" s
     in
-      let external_libraries = List.map ~f:convert external_libraries in
-      if external_libraries = [] then
-        ""
-      else
-        " " ^ String.concat ~sep:" " external_libraries
+      let externals = List.map ~f:convert external_libraries in
+      let external_libraries = List.map ~f:fst externals in
+      let external_includes = List.filter_map ~f:snd externals in
+      (" " ^ String.concat ~sep:" " external_libraries, String.concat ~sep:" " external_includes)
   in
     mark_overhead ();
-    exec_or_die ~cwd:build_dir ocamlopt "-o %s%s%s -g -no-alias-deps -w -49%s %s" name exe external_libraries c_objects (String.concat ~sep:" " build_modules);
+    (*exec_or_die ~cwd:build_dir ocamlopt "-o %s%s%s -g -no-alias-deps -w -49%s %s" name exe external_libraries c_objects (String.concat ~sep:" " build_modules);*)
+    scheduler name exe external_includes external_libraries c_taints build_modules;
     mark_timing "Compilation"
 
 let get_c_taints c_taints libraries =

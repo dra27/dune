@@ -510,23 +510,54 @@ let topsort dependencies modules =
   in
     process 0 StringSet.empty [] modules
 
+type build_task = Task of string option * (StringSet.t -> build_task)
+
 let get_compilation_order dependencies modules =
-  let dependencies = List.fold_left ~f:(fun map (key, value) -> StringMap.add key value map) ~init:StringMap.empty dependencies in
+  mark_overhead ();
+  let get_released released modules =
+    let (buildable, modules) = List.partition ~f:(fun (_, (_, dep_count, _)) -> !dep_count = 0) modules in
+    let buildable = List.rev_map ~f:(fun (name, (releases, _, _)) -> List.iter ~f:decr !releases; name) buildable in
+    (buildable, modules)
+  in
+  (* XXX This marking process would be neater keeping the list separate - we don't need the deps after its built. Note that this is also measuarbly faster than scanning dependencies each time *)
+  (* XXX In fact, shouldn't it be possible to do this without having to use refs at all - if we build a map of the lists when initially computing dependencies, then convert each one at the end *)
+  let dependencies = List.fold_left ~f:(fun map (key, value) -> StringMap.add key (ref [], ref (List.length value), value) map) ~init:StringMap.empty dependencies in
+  StringMap.iter (fun file (updates, dep_count, deps) -> List.iter ~f:(fun x -> let (x, _, _) = StringMap.find x dependencies in x := dep_count::!x) deps) dependencies;
   let modules =
     (* Expand the list to include everything which needs building *)
     let rec add_dependencies to_build filename =
       if StringSet.mem filename to_build then
         to_build
       else
-        let deps = StringMap.find filename dependencies in
+        let (_, _, deps) = StringMap.find filename dependencies in
         List.fold_left ~f:add_dependencies ~init:(StringSet.add filename to_build) deps
     in
       List.fold_left ~f:add_dependencies ~init:StringSet.empty modules
-      |> StringSet.elements
+      |> StringSet.elements |> List.map ~f:(fun x -> (x, StringMap.find x dependencies))
   in
-  mark_overhead ();
-  let r = topsort dependencies modules in
-  mark_timing "topsort"; r
+  let rec seq modules buildable released =
+    (* XXX Any coalescing (e.g. of .mli) and so forth would take place here *)
+    match buildable with
+    | [] -> 
+        let (buildable, modules) = get_released released modules in
+        if buildable = [] then
+          Task(None, seq modules [])
+        else
+          seq modules buildable released
+    | item::buildable ->
+        Task(Some item, seq modules buildable)
+  in
+    let rec j1_version released seq =
+      match seq released with
+      | Task (Some item, next) ->
+          let released = StringSet.add item released in
+          item :: j1_version released next
+      | Task (None, _) ->
+          []
+    in
+      (*seq modules [] StringSet.empty*)
+      let r = j1_version StringSet.empty (seq modules []) in
+      mark_timing "j1_version"; r
 
 let process_task ~start ~maps ~dependencies ~c_taints {target = (name, main); external_libraries; local_libraries} =
   let build_modules =

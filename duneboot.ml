@@ -561,7 +561,7 @@ let get_compilation_order dependencies modules =
       seq modules []
 
 let scheduler name exe external_includes external_libraries c_taints build_modules =
-  let parallel_count = 8 in
+  let parallel_count = 4 in
   let rec scheduler final_link c_objects released tasks build_modules =
     let finished_pid =
       if Sys.win32 || tasks = [] then
@@ -601,7 +601,7 @@ let scheduler name exe external_includes external_libraries c_taints build_modul
                  let task =
                    let cwd = Sys.getcwd () in
                    Sys.chdir build_dir;
-                   Printf.printf "%s -c -g -no-alias-deps -w -49 -I +threads %s\n%!" ocamlopt file;
+                   Printf.printf "%s -c -g -no-alias-deps -w -49 -I +threads %s\n" ocamlopt file;
                    let pid = Unix.create_process ocamlopt [| "ocamlopt"; "-c"; "-g"; "-no-alias-deps"; "-w"; "-49"; "-I"; "+threads" (* XXX *); file |] Unix.stdin Unix.stdout Unix.stderr in
                    Sys.chdir cwd;
                    (pid, file, releases)
@@ -679,6 +679,6 @@ let main () =
   let c_taints = get_c_taints StringMap.empty libraries in
   let dependencies = get_dependencies ~maps libraries in
   process_task ~start ~maps ~dependencies ~c_taints task;
-  Queue.fold (fun last (time, message) -> Printf.eprintf "%s: %f\n%!" (Option.value ~default:"Overhead" message) (time -. last); time) start timings |> ignore
+  Queue.fold (fun last (time, message) -> Printf.eprintf "%s: %f\n" (Option.value ~default:"Overhead" message) (time -. last); time) start timings |> ignore
 
 let () = main ()

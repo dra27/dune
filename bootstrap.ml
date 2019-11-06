@@ -49,7 +49,7 @@ let () =
       (compiler, "secondary")
   in
   exit_if_non_zero
-    (runf "%s %s -o %s unix.cma %s" compiler
+    (runf "%s %s -o %s unix.cma -I boot %s" compiler
        (* Make sure to produce a self-contained binary as dlls tend to cause
           issues *)
        ( if v < (4, 10) then

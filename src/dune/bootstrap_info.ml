@@ -32,6 +32,12 @@ let rule sctx compile (exes : Dune_file.Executables.t) () =
                  (List.map locals ~f:(fun x ->
                       let info = Lib.Local.info x in
                       let dir = Lib_info.src_dir info in
+                      let special_builton_support =
+                        match Lib_info.special_builtin_support info with
+                        | Some (Build_info { data_module; _ }) ->
+                          Some data_module
+                        | _ -> None
+                      in
                       Dyn.Tuple
                         [ Path.Source.to_dyn
                             (Path.Build.drop_build_context_exn dir)
@@ -44,6 +50,7 @@ let rule sctx compile (exes : Dune_file.Executables.t) () =
                             with
                           | _ :: _ :: _ -> Dyn.Bool true
                           | _ -> Dyn.Bool false )
+                        ; Dyn.Encoder.(option string) special_builton_support
                         ])))
           ]))
 

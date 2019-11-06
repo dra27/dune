@@ -7,38 +7,13 @@ let ignored_source_files = [ "dune"; ".merlin"; "setup.defaults.ml" ]
 type task =
   { target : string * string
   ; external_libraries : string list
-  ; local_libraries : (string * string option * bool * string list) list
+  ; local_libraries : (string * string option * bool * string option) list
   }
 
-(* XXX This should be coming from boot/libs.ml *)
 let task =
   { target = ("dune", "bin/main.ml")
-  ; external_libraries = [ "unix"; "threads.posix" ]
-  ; local_libraries =
-      [ ("src/stdune/caml", Some "Dune_caml", false, [])
-      ; ("src/stdune", Some "Stdune", false, [])
-      ; ("src/dune_lang", Some "Dune_lang", false, [])
-      ; ("vendor/incremental-cycles/src", Some "Incremental_cycles", false, [])
-      ; ("src/dag", Some "Dag", false, [])
-      ; ("src/fiber", Some "Fiber", false, [])
-      ; ("src/memo", Some "Memo", false, [])
-      ; ("src/xdg", Some "Xdg", false, [])
-      ; ("src/dune_cache", Some "Dune_cache", false, [])
-      ; ("src/dune_cache_daemon", Some "Dune_cache_daemon", false, [])
-      ; ("vendor/re/src", Some "Dune_re", false, [])
-      ; ("vendor/opam-file-format/src", None, false, [])
-      ; ("otherlibs/dune-glob", Some "Dune_glob", false, [])
-      ; ("src/ocaml-config", Some "Ocaml_config", false, [])
-      ; ("src/catapult", Some "Catapult", false, [])
-      ; ("src/jbuild_support", Some "Jbuild_support", false, [])
-      ; ("otherlibs/action-plugin/src", Some "Dune_action_plugin", false, [])
-      ; ("src/dune", Some "Dune", true, [])
-      ; ("vendor/cmdliner/src", None, false, [])
-      ; ( "otherlibs/build-info/src"
-        , Some "Build_info"
-        , false
-        , [ "boot/build_info_data.ml" ] )
-      ]
+  ; external_libraries = Libs.external_libraries
+  ; local_libraries = Libs.local_libraries
   }
 
 (** {2 Utility functions *)
@@ -61,14 +36,17 @@ let open_out file =
   if Sys.file_exists file then failwith "%s already exists" file;
   open_out file
 
+let input_lines ic =
+  let rec loop ic acc =
+    match input_line ic with
+    | line -> loop ic (line :: acc)
+    | exception End_of_file -> List.rev acc
+  in
+  loop ic []
+
 let read_lines fn =
   let ic = open_in fn in
-  let rec loop ic acc =
-    match try Some (input_line ic) with End_of_file -> None with
-    | Some line -> loop ic (line :: acc)
-    | None -> List.rev acc
-  in
-  let lines = loop ic [] in
+  let lines = input_lines ic in
   close_in ic;
   lines
 
@@ -127,6 +105,14 @@ let mkdir_p dir =
         Unix.mkdir dir 0o777
   in
   recurse dir
+
+let rec rm_rf fn =
+  match Unix.lstat fn with
+  | { st_kind = S_DIR; _ } ->
+    List.iter (readdir fn) ~f:rm_rf;
+    Unix.rmdir fn
+  | _ -> Unix.unlink fn
+  | exception Unix.Unix_error (ENOENT, _, _) -> ()
 
 let path_sep =
   if Sys.win32 then
@@ -329,7 +315,58 @@ let not_ignored_file file =
   else
     false
 
-let assemble_unit directory namespace scan_subdirs extra_files =
+let get_version () =
+  let from_dune_project =
+    match read_lines "dune-project" with
+    | exception _ -> None
+    | lines ->
+      let rec loop = function
+        | [] -> None
+        | line :: lines -> (
+          match Scanf.sscanf line "(version %s)" (fun v -> v) with
+          | exception _ -> loop lines
+          | v -> Some v )
+      in
+      loop lines
+  in
+  match from_dune_project with
+  | Some _ -> from_dune_project
+  | None -> (
+    let ic = Unix.open_process_in "git describe --always --dirty" in
+    let lines = input_lines ic in
+    match (Unix.close_process_in ic, lines) with
+    | WEXITED 0, [ v ] -> Some v
+    | _ -> None )
+
+let print_build_info oc =
+  let pr fmt = Printf.fprintf oc fmt in
+  let prlist name l ~f =
+    match l with
+    | [] -> pr "let %s = []\n" name
+    | x :: l ->
+      pr "let %s =\n" name;
+      pr "  [ ";
+      f x;
+      List.iter l ~f:(fun x ->
+          pr "  ; ";
+          f x);
+      pr "  ]\n"
+  in
+  pr "let version = %s\n"
+    ( match get_version () with
+    | None -> "None"
+    | Some v -> Printf.sprintf "Some %S" v );
+  pr "\n";
+  let libs =
+    List.map task.local_libraries ~f:(fun (name, _, _, _) -> (name, "version"))
+    @ List.map task.external_libraries ~f:(fun name ->
+          (name, {|Some "[distributed with Ocaml]"|}))
+    |> List.sort ~cmp:(fun (a, _) (b, _) -> String.compare a b)
+  in
+  prlist "statically_linked_libraries" libs ~f:(fun (name, v) ->
+      pr "%S, %s\n" name v)
+
+let assemble_unit directory namespace scan_subdirs build_info_module =
   let add_to_namespace, close_namespace, get_target, write_header =
     get_namespace_processing_functions directory namespace
   in
@@ -369,9 +406,17 @@ let assemble_unit directory namespace scan_subdirs extra_files =
     else
       units
   in
-  List.fold_left ~f:process_file ~init:[]
-    (List.rev_append extra_files (readdir directory))
-  |> close_namespace
+  let init =
+    match build_info_module with
+    | None -> []
+    | Some m ->
+      let file = directory ^/ m ^ ".ml" in
+      let oc = open_out (build_dir ^/ get_target file) in
+      print_build_info oc;
+      close_out oc;
+      [ add_to_namespace (Filename.basename file) ]
+  in
+  List.fold_left ~f:process_file ~init (readdir directory) |> close_namespace
 
 let map_library (directory, namespace, scan_subdirs, extra_files) =
   let files = assemble_unit directory namespace scan_subdirs extra_files in
@@ -491,7 +536,7 @@ let assemble_libraries { local_libraries; target = _, main } =
         String.capitalize_ascii
           (Filename.chop_extension (Filename.basename main))
       in
-      (dir, Some namespace, false, [])
+      (dir, Some namespace, false, None)
     in
     local_libraries @ [ task_lib ]
   in
@@ -747,7 +792,8 @@ let process_task ~parallel_count ~maps ~dependencies ~c_files
 (** {2 Bootstrap process *)
 let main () =
   let start = Unix.gettimeofday () in
-  let () = mkdir_p build_dir in
+  rm_rf build_dir;
+  mkdir_p build_dir;
   (* XXX Clean out *.ml, *.mli, *.c and any other crap from the build directory *)
   let parallel_count =
     if Sys.win32 then
@@ -768,7 +814,7 @@ let main () =
       (time -. last);
     time
   in
-  copy_to "boot/dune.install" ~dir:".";
+  copy_to "_boot/dune.install" ~dir:".";
   Queue.fold print_timing start timings |> ignore
 
 let () = main ()

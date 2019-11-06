@@ -768,6 +768,7 @@ let main () =
       (time -. last);
     time
   in
+  copy_to "boot/dune.install" ~dir:".";
   Queue.fold print_timing start timings |> ignore
 
 let () = main ()

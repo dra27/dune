@@ -77,7 +77,7 @@ case "$TARGET" in
         fi
 
         if [ $WITH_OPAM -eq 1 ] ; then
-          _boot/install/default/bin/dune runtest && \
+          _boot/dune runtest && \
               opam_install_test_deps
           opam remove dune jbuilder \
                `opam list --depends-on jbuilder --installed --short` \
@@ -115,7 +115,7 @@ case "$TARGET" in
         UPDATE_OPAM=1
         opam upgrade
       fi
-      if ! ./_boot/install/default/bin/dune build @runtest-no-deps &> $RUNTEST_NO_DEPS ; then
+      if ! ./_boot/dune build @runtest-no-deps &> $RUNTEST_NO_DEPS ; then
         cat $RUNTEST_NO_DEPS;
         exit 1;
       fi
@@ -129,10 +129,10 @@ case "$TARGET" in
     fi
     if [ $WITH_OPAM -eq 1 ] ; then
       cat $RUNTEST_NO_DEPS;
-      _boot/install/default/bin/dune runtest && \
+      _boot/dune runtest && \
       # _boot/install/default/bin/dune build @test/blackbox-tests/runtest-js && \
       # _boot/install/default/bin/dune build @test/blackbox-tests/runtest-coq && \
-      ! _boot/install/default/bin/dune build @test/fail-with-background-jobs-running
+      ! _boot/dune build @test/fail-with-background-jobs-running
       RESULT=$?
       if [ $UPDATE_OPAM -eq 0 ] ; then
         rm -rf ~/.opam

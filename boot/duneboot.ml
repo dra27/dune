@@ -664,7 +664,7 @@ let scheduler parallel_count name exe external_includes external_libraries
           let task =
             let cwd = Sys.getcwd () in
             Sys.chdir build_dir;
-            Printf.printf "%s -c -g -no-alias-deps -w -49 -I +threads %s\n"
+            Printf.printf "%s -c -g -no-alias-deps -w -49 -I +threads %s\n%!"
               ocamlopt file;
             let args =
               let args =

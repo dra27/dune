@@ -6,3 +6,7 @@
 (alias
  (name runtest)
  (deps libs.ml))
+
+(executable
+ (name duneboot)
+ (libraries unix))

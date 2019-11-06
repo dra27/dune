@@ -4,6 +4,7 @@ _build
 *.corrected
 *.swp
 *.swo
+.duneboot.exe
 Makefile.dev
 src/dune/setup.ml
 /_boot

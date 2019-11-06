@@ -2,18 +2,18 @@ PREFIX_ARG := $(if $(PREFIX),--prefix $(PREFIX),)
 LIBDIR_ARG := $(if $(LIBDIR),--libdir $(LIBDIR),)
 DESTDIR_ARG := $(if $(DESTDIR),--destdir $(DESTDIR),)
 INSTALL_ARGS := $(PREFIX_ARG) $(LIBDIR_ARG) $(DESTDIR_ARG)
-BIN := ./_boot/default/bin/main.exe
+BIN := ./_boot/dune
 
 -include Makefile.dev
 
-release: bootstrap.ml duneboot.ml
+release: bootstrap.ml boot/libs.ml boot/duneboot.ml
 	ocaml bootstrap.ml
 
 install:
-	$(BIN) install $(INSTALL_ARGS) dune --build-dir _boot
+	$(BIN) install $(INSTALL_ARGS) dune
 
 uninstall:
-	$(BIN) uninstall $(INSTALL_ARGS) dune --build-dir _boot
+	$(BIN) uninstall $(INSTALL_ARGS) dune
 
 reinstall: uninstall install
 

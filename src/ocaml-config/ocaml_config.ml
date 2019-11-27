@@ -400,7 +400,7 @@ let make vars =
     let system = get vars "system" in
     let asm_cfi_supported = get_bool vars "asm_cfi_supported" in
     let with_frame_pointers = get_bool vars "with_frame_pointers" in
-    let asm = get_prog_or_dummy_exn vars "asm" in
+    let asm = Option.value (get_prog_or_dummy vars "asm") ~default:{prog = "<unknown>"; args = []} in (* COMBAK - this should be an error for versions where it's expected *)
     let word_size =
       match get_int_opt vars "word_size" with
       | Some n -> n
@@ -430,22 +430,22 @@ let make vars =
     in
     let default_executable_name = get vars "default_executable_name" in
     let systhread_supported = get_bool vars "systhread_supported" in
-    let host = get vars "host" in
-    let target = get vars "target" in
+    let host = Option.value (get_opt vars "host") ~default:"unknown" in
+    let target = Option.value (get_opt vars "target") ~default:"unknown" in
     let profiling = get_bool vars "profiling" in
     let flambda = get_bool vars "flambda" in
     let spacetime = get_bool vars "spacetime" in
     let safe_string = get_bool vars "safe_string" in
-    let exec_magic_number = get vars "exec_magic_number" in
-    let cmi_magic_number = get vars "cmi_magic_number" in
-    let cmo_magic_number = get vars "cmo_magic_number" in
-    let cma_magic_number = get vars "cma_magic_number" in
-    let cmx_magic_number = get vars "cmx_magic_number" in
-    let cmxa_magic_number = get vars "cmxa_magic_number" in
-    let ast_impl_magic_number = get vars "ast_impl_magic_number" in
-    let ast_intf_magic_number = get vars "ast_intf_magic_number" in
-    let cmxs_magic_number = get vars "cmxs_magic_number" in
-    let cmt_magic_number = get vars "cmt_magic_number" in
+    let exec_magic_number = Option.value (get_opt vars "exec_magic_number") ~default:"unknown" in
+    let cmi_magic_number = Option.value (get_opt vars "cmi_magic_number") ~default:"unknown" in
+    let cmo_magic_number = Option.value (get_opt vars "cmo_magic_number") ~default:"unknown" in
+    let cma_magic_number = Option.value (get_opt vars "cma_magic_number") ~default:"unknown" in
+    let cmx_magic_number = Option.value (get_opt vars "cmx_magic_number") ~default:"unknown" in
+    let cmxa_magic_number = Option.value (get_opt vars "cmxa_magic_number") ~default:"unknown" in
+    let ast_impl_magic_number = Option.value (get_opt vars "ast_impl_magic_number") ~default:"unknown" in
+    let ast_intf_magic_number = Option.value (get_opt vars "ast_intf_magic_number") ~default:"unknown" in
+    let cmxs_magic_number = Option.value (get_opt vars "cmxs_magic_number") ~default:"unknown" in
+    let cmt_magic_number = Option.value (get_opt vars "cmt_magic_number") ~default:"unknown" in
     let windows_unicode = get_bool vars "windows_unicode" in
     let natdynlink_supported =
       Sys.file_exists (Filename.concat standard_library "dynlink.cmxa")

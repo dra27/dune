@@ -11,7 +11,7 @@ module SC = Super_context
    extension is not .ml or when the .ml and .mli are in different directories.
    This flags makes the compiler think there is a .mli file and will the read
    the cmi file rather than create it. *)
-let force_read_cmi source_file = [ "-intf-suffix"; Path.extension source_file ]
+let force_read_cmi source_file = [ (*"-intf-suffix" ; Path.extension source_file XXX Big COMBAK for 4.00.1 - why is this failing? *)]
 
 (* Build the cm* if the corresponding source is present, in the case of cmi if
    the mli is not present it is added as additional target to the .cmo
@@ -174,7 +174,7 @@ let build_cm cctx ~dep_graphs ~precompiled_cmi ~cm_kind (m : Module.t) ~phase =
               Command.Args.empty
             else
               A "-nodynlink" )
-          ; A "-no-alias-deps"
+          (*; A "-no-alias-deps" XXX COMBAK *)
           ; opaque_arg
           ; As (Fdo.phase_flags phase)
           ; opens modules m

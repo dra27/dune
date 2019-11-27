@@ -49,10 +49,10 @@ let default_flags ~dune_version ~profile =
   if Profile.is_dev profile then
     [ "-w"
     ; dev_mode_warnings ~dune_version ^ default_warnings
-    ; "-strict-sequence"
-    ; "-strict-formats"
-    ; "-short-paths"
-    ; "-keep-locs"
+    (*; "-strict-sequence" XXX COMBAK *)
+    (*; "-strict-formats" XXX COMBAK *)
+    (*; "-short-paths" XXX COMBAK *)
+    (*; "-keep-locs" XXX COMBAK *)
     ]
   else
     [ "-w"; default_warnings ]

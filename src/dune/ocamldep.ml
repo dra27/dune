@@ -81,7 +81,7 @@ let deps_of ~cctx ~ml_kind unit =
        ~dir:(Path.build context.build_dir)
        [ A "-modules"
        ; Command.Args.dyn flags
-       ; Command.Ml_kind.flag ml_kind
+       (*; Command.Ml_kind.flag ml_kind*)
        ; Dep (Module.File.path source)
        ]
        ~stdout_to:ocamldep_output);

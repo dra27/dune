@@ -48,7 +48,7 @@ let () =
               Sys.remove fn))
 
 let runf fmt =
-  ksprintf
+  kprintf
     (fun cmd ->
       prerr_endline cmd;
       Sys.command cmd)

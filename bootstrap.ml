@@ -58,11 +58,27 @@ let exit_if_non_zero = function
   | 0 -> ()
   | n -> exit n
 
-let read_file fn =
-  let ic = open_in_bin fn in
-  let s = really_input_string ic (in_channel_length ic) in
-  close_in ic;
-  s
+(* Added in 4.02.0 *)
+let pp_print_text ppf s =
+  let len = String.length s in
+  let left = ref 0 in
+  let right = ref 0 in
+  let flush () =
+    Format.pp_print_string ppf (String.sub s !left (!right - !left));
+    incr right; left := !right;
+  in
+  while (!right <> len) do
+    match s.[!right] with
+      | '\n' ->
+        flush ();
+        Format.pp_force_newline ppf ()
+      | ' ' ->
+        flush (); Format.pp_print_space ppf ()
+      (* there is no specific support for '\t'
+         as it is unclear what a right semantics would be *)
+      | _ -> incr right
+  done;
+  if !left <> len then flush ()
 
 let () =
   let v = Scanf.sscanf Sys.ocaml_version "%d.%d" (fun a b -> (a, b)) in
@@ -73,10 +89,23 @@ let () =
       let compiler = "ocamlfind -toolchain secondary ocamlc" in
       let output_fn = duneboot ^ ".ocamlfind-output" in
       let n = runf "%s 2>%s" compiler output_fn in
-      let s = read_file output_fn in
-      prerr_endline s;
-      if n <> 0 || s <> "" then (
-        Format.eprintf "@[%a@]@." Format.pp_print_text
+      let output_is_empty =
+        let ic = open_in output_fn in
+        let outcome =
+          if in_channel_length ic = 0 then
+            true
+          else let rec display () =
+                 prerr_endline (input_line ic);
+                 display ()
+               in
+                 try
+                   display ()
+                 with End_of_file -> false
+        in
+          close_in ic; outcome
+      in
+      if n <> 0 || not output_is_empty then (
+        Format.eprintf "@[%a@]@." pp_print_text
           (sprintf
              "The ocamlfind's secondary toolchain does not seem to be \
               correctly installed.\n\
@@ -99,7 +128,7 @@ let () =
        else
          "-output-complete-exe" )
        prog
-       (List.map modules ~f:(fun m -> m ^ ".ml") |> String.concat ~sep:" "));
+       (String.concat ~sep:" " (List.map modules ~f:(fun m -> m ^ ".ml"))));
   let args = Array.to_list (Array.sub Sys.argv 1 (Array.length Sys.argv - 1)) in
   let args =
     match which with

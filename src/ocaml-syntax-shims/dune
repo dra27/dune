@@ -1,6 +1,6 @@
 (executable
  (name pp)
- (package dune)
+ (package dune-configurator)
  (public_name ocaml-syntax-shims)
  (libraries compiler-libs.common))
 

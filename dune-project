@@ -56,3 +56,20 @@ versions.  It supports reporting the version from the version control
 system during development to get an precise reference of when the
 executable was built.
 "))
+
+(package
+ (name dune-configurator)
+ (depends
+  (ocaml (>= 4.02))
+  (dune (>= 2.0.0)))
+ (synopsis "Helper library for gathering system configuration")
+ (description "\
+dune-configurator is a small library that helps writing OCaml scripts that
+test features available on the system, in order to generate config.h
+files for instance.
+Among other things, dune-configurator allows one to:
+- test if a C program compiles
+- query pkg-config
+- import #define from OCaml header files
+- generate config.h file
+"))

@@ -53,12 +53,18 @@ uninstall:
 
 reinstall: uninstall install
 
+dev-deps:
+	opam install -y $(DEV_DEPS)
+
 dev-switch:
 	opam switch create -y . --deps-only --with-test
 	opam install -y $(DEV_DEPS)
 
 test: $(BIN)
 	$(BIN) runtest
+
+test-windows: $(BIN)
+	$(BIN) build @runtest-windows
 
 test-js: $(BIN)
 	$(BIN) build @runtest-js

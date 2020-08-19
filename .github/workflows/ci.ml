@@ -35,9 +35,7 @@ let pin () =
       opam [ "pin"; "add"; package ^ ".next"; "."; "--no-action" ])
 
 let test () =
-  if skip_test then
-    ()
-  else if Sys.win32 then (
+  if Sys.win32 then (
     opam [ "install"; "./dune-configurator.opam"; "--deps-only" ];
     run "make" [ "test-windows" ]
   ) else (

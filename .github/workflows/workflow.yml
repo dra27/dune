@@ -44,6 +44,8 @@ jobs:
       # To skip an action, the following should be used:
       # if: ${{ env.SKIP_TEST != "false" }}
       SKIP_TEST: ${{ matrix.skip_test }}
+      OCAML_VERSION: ${{ matrix.ocaml-version }}
+      OS: ${{ matrix.os }}
 
     runs-on: ${{ matrix.os }}
 
@@ -78,3 +80,7 @@ jobs:
       - name: run test suite
         run: opam exec -- ocaml .github/workflows/ci.ml test
         if: env.SKIP_TEST != 'true'
+
+      - name: test source is well formatted
+        run: opam exec -- make fmt
+        if: env.OCAML_VERSION == '4.10.0' && env.OS == 'ubuntu-latest'

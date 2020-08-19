@@ -17,7 +17,7 @@ menhir \
 merlin \
 ocaml-migrate-parsetree \
 ocamlfind \
-ocamlformat \
+ocamlformat.0.14.3 \
 "odoc>=1.5.0" \
 "ppx_expect>=v0.14" \
 ppx_inline_test \

@@ -1,4 +1,4 @@
-module List = ListLabels
+open StdLabels
 
 let skip_test =
   match Sys.getenv "SKIP_TEST" with
@@ -21,8 +21,7 @@ let pin () =
     let packages =
       List.fold_left packages ~init:[] ~f:(fun acc fname ->
           if Filename.check_suffix fname ".opam" then
-            let dot = String.rindex fname '.' in
-            String.sub fname 0 dot :: acc
+            Filename.chop_suffix fname ".opam" :: acc
           else
             acc)
     in
@@ -49,17 +48,10 @@ let test () =
     )
 
 let () =
-  let cmd = ref None in
-  let anon s =
-    match !cmd with
-    | None -> cmd := Some s
-    | Some _ -> raise (Arg.Bad "action already set")
-  in
-  Arg.parse [] anon "Usage: ocaml ci.ml pin";
-  match !cmd with
-  | Some "pin" -> pin ()
-  | Some "test" -> test ()
-  | None -> raise (Arg.Bad "action must be set")
+  match Sys.argv with
+  | [| _; "pin" |] -> pin ()
+  | [| _; "test" |] -> test ()
+  | [| _ |] -> raise (Arg.Bad "action must be set")
   | _ ->
-    prerr_endline "unknown command";
+    prerr_endline "Usage: ci.ml [pin | test]";
     exit 1

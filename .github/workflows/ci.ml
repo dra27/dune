@@ -36,16 +36,14 @@ let pin () =
 let test () =
   if skip_test then
     ()
-  else
-    let win = Sys.cygwin || Sys.win32 in
-    if win then (
-      opam [ "install"; "./dune-configurator.opam"; "--deps-only" ];
-      run "make" [ "test-windows" ]
-    ) else (
-      opam [ "install"; "."; "--deps-only"; "--with-test" ];
-      run "make" [ "dev-deps" ];
-      run "make" [ "test" ]
-    )
+  else if Sys.win32 then (
+    opam [ "install"; "./dune-configurator.opam"; "--deps-only" ];
+    run "make" [ "test-windows" ]
+  ) else (
+    opam [ "install"; "."; "--deps-only"; "--with-test" ];
+    run "make" [ "dev-deps" ];
+    run "make" [ "test" ]
+  )
 
 let () =
   match Sys.argv with

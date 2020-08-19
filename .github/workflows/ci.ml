@@ -6,6 +6,7 @@ let skip_test =
   | s -> bool_of_string s
 
 let run cmd args =
+  (* broken when arguments contain spaces but it's good enough for now. *)
   let cmd = String.concat " " (cmd :: args) in
   match Sys.command cmd with
   | 0 -> ()

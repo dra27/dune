@@ -92,7 +92,7 @@ let () =
           issues *)
        (if v < (4, 10, 1) then "-custom" else "-output-complete-exe")
        prog
-       (if v >= (5, 0, 0) then "-I +unix " else "")
+       (if v >= (4, 14, 0) then "-I +unix " else "")
        (List.map modules ~f:(fun m -> m ^ ".ml") |> String.concat ~sep:" "));
   let args = List.tl (Array.to_list Sys.argv) in
   let args =

@@ -99,7 +99,7 @@ let () =
        else
          "-output-complete-exe")
        prog
-       (if v >= (5, 0, 0) then
+       (if v >= (4, 14, 0) then
          "-I +unix "
        else
          "")

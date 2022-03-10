@@ -515,7 +515,7 @@ let make vars =
     let natdynlink_supported =
       let lib = "dynlink.cmxa" in
       let lib =
-        if version >= (5, 0, 0) then
+        if version >= (4, 14, 0) then
           Filename.concat "dynlink" lib
         else
           lib

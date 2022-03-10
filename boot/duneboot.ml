@@ -654,7 +654,7 @@ end = struct
       "-output-complete-exe"
 
   let unix_library_flags =
-    if ocaml_version >= (5, 0) then
+    if ocaml_version >= (4, 14) then
       [ "-I"; "+unix" ]
     else
       []

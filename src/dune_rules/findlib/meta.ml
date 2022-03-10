@@ -199,6 +199,10 @@ let builtins ~stdlib_dir ~version:ocaml_version =
     ; entries = [ version; main_modules [ name ] ]
     }
   in
+  let sandbox_if_necessary dir =
+    if Ocaml_version.has_sandboxed_otherlibs ocaml_version then "+" ^ dir
+    else "+"
+  in
   let compiler_libs =
     let sub name ?kind ?exists_if_ext deps =
       Package
@@ -221,8 +225,8 @@ let builtins ~stdlib_dir ~version:ocaml_version =
     }
   in
   let stdlib = dummy "stdlib" in
-  let str = simple "str" [] ~dir:"+" in
-  let unix = simple ~labels:true "unix" [] ~dir:"+" in
+  let str = simple "str" [] ~dir:(sandbox_if_necessary "str") in
+  let unix = simple ~labels:true "unix" [] ~dir:(sandbox_if_necessary "unix") in
   let bigarray =
     if
       Ocaml_version.stdlib_includes_bigarray ocaml_version
@@ -230,7 +234,7 @@ let builtins ~stdlib_dir ~version:ocaml_version =
     then dummy "bigarray"
     else simple "bigarray" [ "unix" ] ~dir:"+"
   in
-  let dynlink = simple "dynlink" [] ~dir:"+" in
+  let dynlink = simple "dynlink" [] ~dir:(sandbox_if_necessary "dynlink") in
   let bytes = dummy "bytes" in
   let threads =
     { name = Some (Lib_name.of_string "threads")

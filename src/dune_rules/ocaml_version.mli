@@ -65,3 +65,7 @@ val has_vmthreads : t -> bool
 
 (** Whether [bigarray] {e library} exists *)
 val has_bigarray_library : t -> bool
+
+(** Whether [dynlink], [str] and [unix] are in subdirectories of the standard
+    library *)
+val has_sandboxed_otherlibs : t -> bool

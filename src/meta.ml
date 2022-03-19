@@ -222,8 +222,8 @@ let builtins ~stdlib_dir =
         ]
     }
   in
-  let str = simple "str" [] ~dir:"+" in
-  let unix = simple "unix" [] ~dir:"+" in
+  let str = simple "str" [] ~dir:"+str" in
+  let unix = simple "unix" [] ~dir:"+unix" in
   let bigarray = simple "bigarray" ["unix"] ~dir:"+" in
   let threads =
     { name = "threads"

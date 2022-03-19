@@ -130,7 +130,7 @@ end
       let cmas =
         match requires with
         | No_requires -> []
-        | Unix        -> ["unix.cma"]
+        | Unix        -> ["-I"; "+unix"; "unix.cma"]
       in
       let args =
         List.concat

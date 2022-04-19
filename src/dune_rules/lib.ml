@@ -1388,11 +1388,15 @@ end = struct
           Memo.Build.List.find_map choices
             ~f:(fun { required; forbidden; file } ->
               let forbidden = Lib_name.Set.to_list forbidden in
+              if List.exists ~f:(fun lib -> String.equal (Lib_name.to_string lib) "bigarray") forbidden
+              then Memo.Build.return None
+              else
               let* exists =
                 Memo.Build.List.exists forbidden ~f:(available_internal db)
               in
               if exists then Memo.Build.return None
               else
+              let required = Lib_name.Set.filter ~f:(fun lib -> not(String.equal (Lib_name.to_string lib) "bigarray")) required in
                 Resolve.Build.peek
                   (let deps =
                      Lib_name.Set.fold required ~init:[] ~f:(fun x acc ->

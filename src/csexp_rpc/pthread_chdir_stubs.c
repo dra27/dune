@@ -35,7 +35,7 @@ int __pthread_chdir(const char *path)
 CAMLprim value dune_pthread_chdir(value dir) {
   CAMLparam1(dir);
   if (__pthread_chdir(String_val(dir))) {
-    uerror("__pthread_chdir", Nothing);
+    caml_uerror("__pthread_chdir", Nothing);
   } 
   CAMLreturn (Val_unit); 
 }

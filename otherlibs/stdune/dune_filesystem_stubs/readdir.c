@@ -58,7 +58,7 @@ CAMLprim value caml__dune_filesystem_stubs__readdir(value vd)
     if(errno == 0) {
       CAMLreturn(Val_int(0));
     } else {
-      uerror("readdir", Nothing);
+      caml_uerror("readdir", Nothing);
     }
   }
   v_filename = caml_copy_string(e->d_name);

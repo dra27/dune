@@ -58,7 +58,7 @@ value caml_inotify_init(value unit) {
   CAMLparam1(unit);
 
   int fd = inotify_init1(IN_CLOEXEC);
-  if (fd == -1) uerror("inotify_init", Nothing);
+  if (fd == -1) caml_uerror("inotify_init", Nothing);
 
   CAMLreturn(Val_int(fd));
 }
@@ -69,7 +69,7 @@ value caml_inotify_add_watch(value fd, value path, value selector_flags) {
   int selector = caml_convert_flag_list(selector_flags, inotify_flag_table);
 
   int watch = inotify_add_watch(Int_val(fd), String_val(path), selector);
-  if (watch == -1) uerror("inotify_add_watch", path);
+  if (watch == -1) caml_uerror("inotify_add_watch", path);
 
   CAMLreturn(Val_int(watch));
 }
@@ -78,7 +78,7 @@ value caml_inotify_rm_watch(value fd, value watch) {
   CAMLparam2(fd, watch);
 
   int ret = inotify_rm_watch(Int_val(fd), Int_val(watch));
-  if (ret == -1) uerror("inotify_rm_watch", Nothing);
+  if (ret == -1) caml_uerror("inotify_rm_watch", Nothing);
 
   CAMLreturn(Val_unit);
 }

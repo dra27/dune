@@ -80,7 +80,7 @@ CAMLprim value spawn_pipe()
   leave_safe_pipe_section();
   caml_leave_blocking_section();
   if (ret == -1)
-    uerror("pipe", Nothing);
+    caml_uerror("pipe", Nothing);
   res = caml_alloc_small(2, 0);
   Field(res, 0) = Val_int(fd[0]);
   Field(res, 1) = Val_int(fd[1]);
@@ -102,7 +102,7 @@ CAMLprim value spawn_pipe()
   int fd[2];
   value res;
 
-  if (safe_pipe(fd) == -1) uerror("safe_pipe", Nothing);
+  if (safe_pipe(fd) == -1) caml_uerror("safe_pipe", Nothing);
 
   res = caml_alloc_small(2, 0);
   Field(res, 0) = Val_int(fd[0]);
@@ -576,7 +576,7 @@ CAMLprim value spawn_windows(value v_env,
       !dup2_and_clear_close_on_exec(v_stderr, &si.hStdError )) {
     win32_maperr(GetLastError());
     close_std_handles(&si);
-    uerror("DuplicateHandle", Nothing);
+    caml_uerror("DuplicateHandle", Nothing);
   }
 
   if (!CreateProcess(String_val(v_prog),
@@ -591,7 +591,7 @@ CAMLprim value spawn_windows(value v_env,
                      &pi)) {
     win32_maperr(GetLastError());
     close_std_handles(&si);
-    uerror("CreateProcess", Nothing);
+    caml_uerror("CreateProcess", Nothing);
   }
 
   close_std_handles(&si);

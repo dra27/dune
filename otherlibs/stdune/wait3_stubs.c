@@ -59,7 +59,7 @@ value dune_wait3(value flags) {
   gettimeofday(&tp, NULL);
   caml_leave_blocking_section();
   if (pid == -1)
-    uerror("wait3", Nothing);
+    caml_uerror("wait3", Nothing);
 
   times = caml_alloc_small(2 * Double_wosize, Double_array_tag);
   Store_double_field(times, 0, ru.ru_utime.tv_sec + ru.ru_utime.tv_usec / 1e6);

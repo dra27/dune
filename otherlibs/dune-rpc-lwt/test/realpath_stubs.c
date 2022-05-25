@@ -25,7 +25,7 @@ CAMLprim value dune_realpath(value v_path)
 {
   const char *path = String_val(v_path);
   char *res = realpath(path, NULL);
-  if (res == NULL) uerror("realpath", v_path);
+  if (res == NULL) caml_uerror("realpath", v_path);
   else {
     value v_res = caml_copy_string(res);
     free(res);
@@ -40,7 +40,7 @@ CAMLprim value dune_realpath(value v_path)
      seems like a reasonable thing to do if we do not build against
      GLIBC. */
   char resolved_path[JANE_PATH_MAX];
-  if (realpath(path, resolved_path) == NULL) uerror("realpath", v_path);
+  if (realpath(path, resolved_path) == NULL) caml_uerror("realpath", v_path);
   return caml_copy_string(resolved_path);
 }
 #endif

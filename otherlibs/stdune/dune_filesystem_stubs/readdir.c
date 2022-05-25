@@ -49,7 +49,7 @@ CAMLprim value caml__dune_filesystem_stubs__readdir(value vd)
   DIR * d;
   directory_entry * e;
   d = DIR_Val(vd);
-  if (d == (DIR *) NULL) unix_error(EBADF, "readdir", Nothing);
+  if (d == (DIR *) NULL) caml_unix_error(EBADF, "readdir", Nothing);
   caml_enter_blocking_section();
   errno = 0;
   e = readdir((DIR *) d);
@@ -75,6 +75,6 @@ CAMLprim value caml__dune_filesystem_stubs__readdir(value vd)
 #else
 CAMLprim value caml__dune_filesystem_stubs__readdir(value vd)
 {
-  unix_error(ENOSYS, "readdir", Nothing);
+  caml_unix_error(ENOSYS, "readdir", Nothing);
 }
 #endif

@@ -420,7 +420,7 @@ CAMLprim value spawn_unix(value v_env,
     leave_safe_pipe_section();
     caml_leave_blocking_section();
     free_spawn_info(&info);
-    unix_error(error, "pipe", Nothing);
+    caml_unix_error(error, "pipe", Nothing);
   }
 
   /* Block signals and thread cancellation. When using vfork, the
@@ -491,7 +491,7 @@ CAMLprim value spawn_unix(value v_env,
       case PROG   : arg = v_prog;          break;
     }
     assert(memchr(failure.function, 0, sizeof(failure.function)));
-    unix_error(failure.error, failure.function, arg);
+    caml_unix_error(failure.error, failure.function, arg);
   }
 
   CAMLreturn(Val_int(ret));
@@ -512,7 +512,7 @@ CAMLprim value spawn_windows(value v_env,
   (void)v_stdin;
   (void)v_stdout;
   (void)v_stderr;
-  unix_error(ENOSYS, "spawn_windows", Nothing);
+  caml_unix_error(ENOSYS, "spawn_windows", Nothing);
 }
 
 #else
@@ -536,7 +536,7 @@ CAMLprim value spawn_unix(value v_env,
   (void)v_stderr;
   (void)v_use_vfork;
   (void)v_setpgid;
-  unix_error(ENOSYS, "spawn_unix", Nothing);
+  caml_unix_error(ENOSYS, "spawn_unix", Nothing);
 }
 
 static BOOL dup2_and_clear_close_on_exec(value fd, HANDLE *res)
@@ -602,7 +602,7 @@ CAMLprim value spawn_windows(value v_env,
 
 CAMLprim value spawn_pipe()
 {
-  unix_error(ENOSYS, "spawn_pipe", Nothing);
+  caml_unix_error(ENOSYS, "spawn_pipe", Nothing);
 }
 
 #endif

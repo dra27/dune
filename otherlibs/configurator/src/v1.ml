@@ -656,12 +656,18 @@ module Pkg_config = struct
     let pkg_config_exe_name =
       match Sys.getenv "PKG_CONFIG" with
       | s -> s
-      | exception Not_found -> "pkg-config"
+      | exception Not_found -> "pkgconf"
+    in
+    let pkg_config_args =
+      match ocaml_config_var c "system" with
+      | Some "mingw64" -> ["--personality=x86_64-w64-mingw32"]
+      | Some "mingw" -> ["--personality=i686-w64-mingw32"]
+      | _ -> []
     in
     let pkg_config_args =
       match Sys.getenv "PKG_CONFIG_ARGN" with
-      | s -> String.split ~on:' ' s
-      | exception Not_found -> []
+      | s -> pkg_config_args @ String.split ~on:' ' s
+      | exception Not_found -> pkg_config_args
     in
     Option.map (which c pkg_config_exe_name) ~f:(fun pkg_config ->
       { pkg_config; pkg_config_args; configurator = c })

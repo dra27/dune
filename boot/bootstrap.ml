@@ -95,7 +95,7 @@ let () =
   in
   exit_if_non_zero
     (runf
-       "%s %s -w -24 -g -o %s -verbose -I boot %sunix.cma %s"
+       "%s %s -w -24 -g -o %s -verbose -ccopt -v -ccopt -v -I boot %sunix.cma %s"
        compiler
        (* Make sure to produce a self-contained binary as dlls tend to cause
           issues *)

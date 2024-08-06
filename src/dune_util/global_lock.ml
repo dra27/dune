@@ -52,14 +52,14 @@ module Lock = struct
      | `Failure -> ()
      | `Success ->
        let fd = Flock.fd t in
-       Unix.ftruncate fd 0;
+       (*Unix.ftruncate fd 0;*)
        write_pid fd);
     res
   ;;
 
   let unlock () =
     let lock = Lazy.force t in
-    Unix.ftruncate (Flock.fd lock) 0;
+    (*Unix.ftruncate (Flock.fd lock) 0;*)
     Flock.unlock lock |> or_raise_unix ~name:"unlock"
   ;;
 end

@@ -9,6 +9,11 @@
 #include <errno.h>
 #include <caml/md5.h>
 
+#ifdef _MSC_VER
+#include <io.h>
+#define read _read
+#endif
+
 /* yanked from:
  * https://github.com/janestreet/core/blob/master/core/src/md5_stubs.c
  */

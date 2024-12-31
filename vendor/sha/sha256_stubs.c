@@ -21,6 +21,10 @@
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #define alloca _alloca
+#include <io.h>
+#define open _open
+#define close _close
+#define read _read
 #else
 #include <unistd.h>
 #endif

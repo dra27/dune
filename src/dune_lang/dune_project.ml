@@ -504,7 +504,7 @@ let accept_alternative_dune_file_name_default ~(lang : Lang.Instance.t) =
 
 let cram_default ~(lang : Lang.Instance.t) = lang.version >= (3, 0)
 let expand_aliases_in_sandbox_default ~lang:_ = false
-let suffixed_stub_libraries_default ~(lang : Lang.Instance.t) = lang.version >= (3, 26)
+let suffixed_stub_libraries_default ~(lang : Lang.Instance.t) = lang.version >= (3, 23)
 
 let use_standard_c_and_cxx_flags_default ~(lang : Lang.Instance.t) =
   if lang.version >= (3, 0) then Some true else None

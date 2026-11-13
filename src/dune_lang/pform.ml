@@ -776,7 +776,7 @@ module Env = struct
           , since ~what:Oxcaml.syntax ~version:(0, 1) Var.Oxcaml_supported )
         ; "dune-warnings", since ~version:(3, 21) Var.Dune_warnings
         ; "git-sha", since ~version:(3, 24) Var.Git_sha
-        ; "stub_dll_suffix", since ~version:(3, 26) Var.Stub_dll_suffix
+        ; "stub_dll_suffix", since ~version:(3, 23) Var.Stub_dll_suffix
         ]
       in
       String.Map.of_list_exn
